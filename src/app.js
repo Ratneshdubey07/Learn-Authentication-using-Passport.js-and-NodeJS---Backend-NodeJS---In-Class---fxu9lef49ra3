@@ -14,8 +14,8 @@ app.use(session({
     saveUninitialized: true ,
 }))
 
-// WRITE CODE FOR MIDDLEWARE HERE- init passport on every route call
-//WRITE CODE FOR MIDDLEWARE HERE- allow passport to use "express-session"
+app.use(passport.initialize()) // init passport on every route call
+app.use(passport.session())    //allow passport to use "express-session"
 
 authUser = (user, password, done) => {
     console.log(`Value of "User" in authUser function ----> ${user}`)         //passport will populate, user = req.body.username
@@ -29,30 +29,38 @@ authUser = (user, password, done) => {
     let authenticated_user = { id: 1234, name: "Matthew"} 
 //Let's assume that DB search that user found and password matched for Matthew
     
-    //ENTER THE CORRECT RETURN STATEMENT HERE(Hint : use done and authenticated_user)
+    return done (null, authenticated_user ) 
 }
 
 
-//WRITE A LINE OF CODE DEFINING THE AUTHENTICATION STATEGY - here we will use LocalStrategy, hint(:use the authUser method defined above)
+passport.use(new LocalStrategy (authUser))
 
+passport.serializeUser( (user, done) => { 
+    console.log(`--------> Serialize User`)
+    console.log(user)     
 
-//Write down the code to serialise user here
-{
+    done(null, user.id)
+  
 // Passport will pass the authenticated_user to serializeUser as "user" 
 // This is the USER object from the done() in auth function
 // Now attach using done (null, user.id) tie this user to the req.session.passport.user = {id: user.id}, 
 // so that it is tied to the session object
-}
 
-//Write down code to deserialise here
- {
-       
+} )
+
+
+passport.deserializeUser((id, done) => {
+        console.log("---------> Deserialize Id")
+        console.log(id)
+
+        done (null, {name: "Matthew", id: 1234} )      
+  
 // This is the id that is saved in req.session.passport.{ user: "id"} during the serialization
 // use the id to find the user in the DB and get the user object with user details
 // pass the USER object in the done() of the de-serializer
 // this USER object is attached to the "req.user", and can be used anywhere in the App.
 
-}
+}) 
 
 
 //Middleware to see how the params are populated by Passport
@@ -83,6 +91,7 @@ printData = (req, res, next) => {
 
 app.use(printData) //user printData function as middleware to print populated variables
 
+
 app.get("/login", (req, res) => {
     res.render("login.ejs")
 
@@ -94,6 +103,7 @@ app.post ("/login", passport.authenticate('local', {
 }))
 
 app.get("/dashboard", (req, res) => {  
+    if(req.user === undefined) req.user={name : req.body.username}
     res.status(200)
     res.render("dashboard.ejs", {name: req.user.name})
 
